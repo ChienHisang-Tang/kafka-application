@@ -36,6 +36,7 @@ public class Entry {
          /*ProducerApplication pa3 = new ProducerApplication(ProducerMode.MULTI_SYN , 2);
          pa3.run();*/
          
+         /*aaaabbb*/
          Optional<MBeanServerConnection> conn =  JmxConnection.create("192.168.103.50", "9999");
          JmxAttribute attr = new KafkaServerAttribute.MsglnCountPerSec(conn.get() , Topic.TOPIC_ONE);
          int result = (int)attr.getAttribute().get();
