@@ -12,7 +12,7 @@ import javax.management.MalformedObjectNameException;
 
 /**
  *
- * @author 工研翔翔哥
+ * @author 翔翔
  */
 public class IndicatorPool {
     
@@ -40,7 +40,7 @@ public class IndicatorPool {
         ObjectName out = converter(this.messagesInPerSec).get();       
         return out;
     }
-    //same indicator
+
     public ObjectName getMsgInTpsPerSecIndicator(){
         ObjectName out = converter(this.messagesInPerSec).get();
         return out;

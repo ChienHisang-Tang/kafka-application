@@ -32,19 +32,20 @@ public class BrokerOperation {
     
     public BrokerOperation(String serverIP){
         this.prop = new Properties();
-        prop.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, serverIP);      
+        prop.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, serverIP);
+        this.myAdmin = AdminClient.create(prop);
     }
     
-    public AdminClient start(){
+    /*public AdminClient start(){
         this.myAdmin = AdminClient.create(prop);
         return this.myAdmin;
-    }
+    }*/
     
     public void close(){
         this.myAdmin.close();
     }
     
-    public void createTopics(AdminClient myAdmin, String topicName , int numPartition , short replication) throws ExecutionException , InterruptedException {
+    public void createTopics(String topicName , int numPartition , short replication) throws ExecutionException , InterruptedException {
         //String name, int numPartitions, short replicationFactor 
         if(numPartition <= 0 )
             numPartition = 1;
@@ -55,13 +56,15 @@ public class BrokerOperation {
         result.all().get();
     }
     
-    public void listAllTopics() throws ExecutionException , InterruptedException{
+    public String[] listAllTopics() throws ExecutionException , InterruptedException{
         ListTopicsOptions options = new ListTopicsOptions();
         // includes internal topics such as __consumer_offsets
         options.listInternal(true);
         ListTopicsResult topics = myAdmin.listTopics(options);
         Set<String> topicNames = topics.names().get();
-        System.out.println(topicNames);
+        topicNames.remove("__consumer_offsets");
+        String[] dest =  topicNames.toArray(new String[0]);
+        return dest;
     }
     
     public Set getAllTopics() throws ExecutionException , InterruptedException{

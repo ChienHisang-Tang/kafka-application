@@ -5,22 +5,33 @@
  */
 package com.dslab.kafka.jmx;
 
-
-import com.dslab.kafka.app.TopicList.Topic;
-import java.io.IOException;
+//java lib
 import java.util.Optional;
-import javax.management.AttributeNotFoundException;
-import javax.management.InstanceNotFoundException;
+import java.util.Set;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
-import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+//Exception
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
+import java.io.IOException;
+
+
 /**
  *
  * @author 翔翔
  */
-public class KafkaServerAttribute {
+public abstract class KafkaServerAttribute {
+    
+    protected MBeanServerConnection connection = null;
+    protected ObjectName indicator = null;
+    protected String attribute = null;
+    protected String topic = null;
+    
+    public abstract String getAttribute();
     
     private static Optional<Object> getConnAttribute(Object o , MBeanServerConnection conn , ObjectName indicator , String attr){
         try{
@@ -40,58 +51,83 @@ public class KafkaServerAttribute {
         return Optional.ofNullable(o);
     }
       
-    public static class MsglnCountPerSec  implements JmxAttribute{
-        
-        private MBeanServerConnection conn;
-        private ObjectName indicator;
-        private String attr;
-        private String topic;
-        
-        public MsglnCountPerSec(MBeanServerConnection connection , Topic topic){
-            this.conn = connection;
+    protected static class MsglnCountPerSec extends KafkaServerAttribute{
+               
+        public MsglnCountPerSec(MBeanServerConnection connection , String topic){
+            this.connection = connection;
             this.topic = topic.toString();
-            this.attr = "Count";
+            this.attribute = "Count";
             this.indicator = new IndicatorPool(this.topic).getMessagesInPerSecIndicator();
         }
                 
         @Override
-        public Optional<Integer> getAttribute() {
+        public String getAttribute() {
             Object o = null;
-            int v = (int)getConnAttribute(o , this.conn , this.indicator , this.attr).get();
-            return Optional.of(v);
+            long v = (long)getConnAttribute(o , this.connection , this.indicator , this.attribute).get();
+            return String.valueOf(v);
         }
                 
     }
     
-    public static class MsgInTpsPerSec implements JmxAttribute{
-        
-        private MBeanServerConnection conn;
-        private ObjectName indicator;
-        private String attr;
-        private String topic;     
-        
-        public MsgInTpsPerSec(MBeanServerConnection connection , Topic topic){
-            this.conn = connection;
+    protected static class MsgInTpsPerSec extends KafkaServerAttribute{
+           
+        public MsgInTpsPerSec(MBeanServerConnection connection , String topic){
+            this.connection = connection;
             this.topic = topic.toString();
-            this.attr = "OneMinuteRate";
+            this.attribute = "OneMinuteRate";
             this.indicator = new IndicatorPool(this.topic).getMsgInTpsPerSecIndicator();
         }
         
         @Override
-        public Optional<Double> getAttribute() {
+        public String getAttribute() {
             Object o = null;
-            double v = (double)getConnAttribute(o , this.conn , this.indicator , this.attr).get();
-            return Optional.of(v);            
+            double v = (double)getConnAttribute(o , this.connection , this.indicator , this.attribute).get();
+            return String.valueOf(v);
         }
                
     }
     
+    protected static class TopicEndOffset extends KafkaServerAttribute{
+        
+        private String keyProperty = "partition";
+        
+        public TopicEndOffset(MBeanServerConnection connection , String topic){
+            this.connection = connection;
+            this.topic = topic.toString();
+            this.attribute = "Value";
+            this.indicator = new IndicatorPool(this.topic).getEndOffsetObjectsIndicator();       
+        }
+        
+        private int getPartitionId(ObjectName indi){
+            String id = indi.getKeyProperty(keyProperty);
+            return Integer.valueOf(id);
+        }
+        
+        private Optional<Set<ObjectName>> getIndicators(){
+            Set<ObjectName> indicators = null;
+            try{
+                indicators = this.connection.queryNames(this.indicator, null);
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            return Optional.ofNullable(indicators);
+        }
+        
+        @Override
+        public String getAttribute() {
+            Set<ObjectName> indicators = this.getIndicators().get();
+            Map<Integer,Long> map = new HashMap<>();
+            for(ObjectName in : indicators){
+                Object o = null;
+                int pid = getPartitionId(in);
+                Optional<Object> obj = getConnAttribute(o , this.connection , in , this.attribute);
+                if(obj.isPresent())
+                    map.put(pid, (long)obj.get());
+            }
+            return map.toString();
+        }
+    
+    }
     
     
-    
-    
-    
-
-    
-
 }
